@@ -1,0 +1,42 @@
+{
+  "name": "termi-pet",
+  "version": "1.0.0",
+  "description": "A Tamagotchi-style virtual pet that lives in your terminal",
+  "type": "module",
+  "bin": {
+    "termi-pet": "dist/cli.js"
+  },
+  "main": "dist/cli.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc && node -e \"const fs=require('fs');const f='dist/cli.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!')){fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);}\" && chmod +x dist/cli.js",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "terminal",
+    "pet",
+    "tamagotchi",
+    "virtual-pet",
+    "cli",
+    "ink",
+    "ascii",
+    "game"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "ink": "^6.0.0",
+    "meow": "^13.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@sindresorhus/tsconfig": "^7.0.0",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
