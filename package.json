@@ -1,6 +1,6 @@
 {
   "name": "termi-pet",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A Tamagotchi-style virtual pet that lives in your terminal",
   "type": "module",
   "bin": {

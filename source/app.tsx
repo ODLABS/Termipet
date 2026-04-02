@@ -15,6 +15,8 @@ import {EggHatchScreen} from './components/egg-hatch-screen.js';
 import {EvolutionScreen} from './components/evolution-screen.js';
 import {DeathScreen} from './components/death-screen.js';
 import {ShopScreen} from './components/shop-screen.js';
+import {GameSelectScreen} from './components/game-select-screen.js';
+import {GAMES, type GameInfo} from './components/games/index.js';
 
 interface WelcomeScreenProps {
 	onNew: () => void;
@@ -81,6 +83,7 @@ export function App() {
 	const [hasSave, setHasSave] = useState(false);
 	const [actionMessage, setActionMessage] = useState('');
 	const [loaded, setLoaded] = useState(false);
+	const [currentGame, setCurrentGame] = useState<GameInfo | null>(null);
 
 	// Load save on startup
 	useEffect(() => {
@@ -260,6 +263,37 @@ export function App() {
 		});
 	}, [showMessage]);
 
+	const handleGameComplete = useCallback((gameScore: number) => {
+		setPet(prev => {
+			if (!prev) return prev;
+			// Award coins and happiness based on score
+			const coins = Math.max(1, Math.floor(gameScore / 10));
+			const happinessBoost = Math.min(30, Math.floor(gameScore / 20));
+			const xpGain = Math.max(1, Math.floor(gameScore / 15));
+			const newState: PetState = {
+				...prev,
+				currency: prev.currency + coins,
+				xp: prev.xp + xpGain,
+				level: Math.floor((prev.xp + xpGain) / 50) + 1,
+				stats: {
+					...prev.stats,
+					happiness: Math.min(100, prev.stats.happiness + happinessBoost),
+					energy: Math.max(0, prev.stats.energy - 10),
+					hunger: Math.max(0, prev.stats.hunger - 5),
+				},
+				transactions: [
+					...prev.transactions.slice(-99),
+					{amount: coins, reason: `Mini-game: ${currentGame?.name ?? 'Game'}`, timestamp: Date.now()},
+				],
+			};
+			void savePet(newState);
+			showMessage(`Game over! +${coins} coins, +${happinessBoost} happiness, +${xpGain} XP`);
+			return newState;
+		});
+		setCurrentGame(null);
+		setScreen('main');
+	}, [currentGame, showMessage]);
+
 	const handleQuit = useCallback(() => {
 		if (pet) {
 			void savePet(pet);
@@ -319,6 +353,28 @@ export function App() {
 			}} />;
 		}
 
+		case 'game-select': {
+			if (!pet) return null;
+			return (
+				<GameSelectScreen
+					petName={pet.name}
+					onSelect={(game) => {
+						setCurrentGame(game);
+						setScreen('playing');
+					}}
+					onBack={() => {
+						setScreen('main');
+					}}
+				/>
+			);
+		}
+
+		case 'playing': {
+			if (!pet || !currentGame) return null;
+			const GameComponent = currentGame.component;
+			return <GameComponent onComplete={handleGameComplete} petName={pet.name} />;
+		}
+
 		case 'main': {
 			if (!pet) return null;
 			return (
@@ -335,6 +391,13 @@ export function App() {
 						onAction={handleAction}
 						onShop={() => {
 							setScreen('shop');
+						}}
+						onPlay={() => {
+							if (pet.isSleeping) {
+								showMessage('Wake up your pet first!');
+								return;
+							}
+							setScreen('game-select');
 						}}
 						onQuit={handleQuit}
 						isSleeping={pet.isSleeping}

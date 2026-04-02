@@ -6,7 +6,7 @@ export type PetMood = 'happy' | 'idle' | 'hungry' | 'sleeping' | 'sick' | 'dead'
 
 export type ActionType = 'feed' | 'play' | 'train' | 'clean' | 'sleep';
 
-export type Screen = 'pet-select' | 'name-input' | 'egg-hatch' | 'main' | 'shop' | 'evolving' | 'dead';
+export type Screen = 'pet-select' | 'name-input' | 'egg-hatch' | 'main' | 'shop' | 'evolving' | 'dead' | 'game-select' | 'playing';
 
 export type ShopItemId = string;
 

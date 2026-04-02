@@ -5,11 +5,12 @@ import type {ActionType} from '../types.js';
 interface ActionMenuProps {
 	onAction: (action: ActionType) => void;
 	onShop: () => void;
+	onPlay: () => void;
 	onQuit: () => void;
 	isSleeping: boolean;
 }
 
-export function ActionMenu({onAction, onShop, onQuit, isSleeping}: ActionMenuProps) {
+export function ActionMenu({onAction, onShop, onPlay, onQuit, isSleeping}: ActionMenuProps) {
 	useInput((input, key) => {
 		if (key.escape) {
 			onQuit();
@@ -23,7 +24,7 @@ export function ActionMenu({onAction, onShop, onQuit, isSleeping}: ActionMenuPro
 			}
 
 			case 'p': {
-				onAction('play');
+				onPlay();
 				break;
 			}
 
@@ -70,7 +71,7 @@ export function ActionMenu({onAction, onShop, onQuit, isSleeping}: ActionMenuPro
 	return (
 		<Box borderStyle="single" borderColor="white" paddingX={1} justifyContent="center" gap={1}>
 			<Text>[<Text color="green" bold>F</Text>]eed</Text>
-			<Text>[<Text color="yellow" bold>P</Text>]lay</Text>
+			<Text>[<Text color="yellow" bold>P</Text>]lay Games</Text>
 			<Text>[<Text color="magenta" bold>T</Text>]rain</Text>
 			<Text>[<Text color="cyan" bold>C</Text>]lean</Text>
 			<Text>[<Text color="blue" bold>S</Text>]leep</Text>
