@@ -266,13 +266,17 @@ export function App() {
 	const handleGameComplete = useCallback((gameScore: number) => {
 		setPet(prev => {
 			if (!prev) return prev;
-			// Award coins and happiness based on score
-			const coins = Math.max(1, Math.floor(gameScore / 10));
+			const game = currentGame;
+			if (!game) return prev;
+
+			const isWin = gameScore >= game.winThreshold;
+			const payout = isWin ? game.entryFee * game.payoutMultiplier : 0;
 			const happinessBoost = Math.min(30, Math.floor(gameScore / 20));
 			const xpGain = Math.max(1, Math.floor(gameScore / 15));
+
 			const newState: PetState = {
 				...prev,
-				currency: prev.currency + coins,
+				currency: prev.currency + payout,
 				xp: prev.xp + xpGain,
 				level: Math.floor((prev.xp + xpGain) / 50) + 1,
 				stats: {
@@ -283,11 +287,15 @@ export function App() {
 				},
 				transactions: [
 					...prev.transactions.slice(-99),
-					{amount: coins, reason: `Mini-game: ${currentGame?.name ?? 'Game'}`, timestamp: Date.now()},
+					{amount: isWin ? payout : 0, reason: `${isWin ? 'Won' : 'Lost'}: ${game.name} (score: ${gameScore})`, timestamp: Date.now()},
 				],
 			};
 			void savePet(newState);
-			showMessage(`Game over! +${coins} coins, +${happinessBoost} happiness, +${xpGain} XP`);
+			if (isWin) {
+				showMessage(`WIN! Score: ${gameScore} — +${payout} coins, +${happinessBoost} happiness, +${xpGain} XP`);
+			} else {
+				showMessage(`Lost! Score: ${gameScore} (need ${game.winThreshold}+) — Lost ${game.entryFee}c entry fee. +${xpGain} XP`);
+			}
 			return newState;
 		});
 		setCurrentGame(null);
@@ -358,7 +366,20 @@ export function App() {
 			return (
 				<GameSelectScreen
 					petName={pet.name}
+					coins={pet.currency}
 					onSelect={(game) => {
+						// Deduct entry fee before starting game
+						setPet(prev => {
+							if (!prev) return prev;
+							const newState = {...prev, currency: prev.currency - game.entryFee,
+								transactions: [
+									...prev.transactions.slice(-99),
+									{amount: -game.entryFee, reason: `Entry fee: ${game.name}`, timestamp: Date.now()},
+								],
+							};
+							void savePet(newState);
+							return newState;
+						});
 						setCurrentGame(game);
 						setScreen('playing');
 					}}

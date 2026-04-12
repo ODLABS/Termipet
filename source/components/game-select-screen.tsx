@@ -6,11 +6,12 @@ interface GameSelectScreenProps {
 	onSelect: (game: GameInfo) => void;
 	onBack: () => void;
 	petName: string;
+	coins: number;
 }
 
 const GAMES_PER_PAGE = 8;
 
-export function GameSelectScreen({onSelect, onBack, petName}: GameSelectScreenProps) {
+export function GameSelectScreen({onSelect, onBack, petName, coins}: GameSelectScreenProps) {
 	const [selectedIdx, setSelectedIdx] = useState(0);
 	const [page, setPage] = useState(0);
 
@@ -62,7 +63,7 @@ export function GameSelectScreen({onSelect, onBack, petName}: GameSelectScreenPr
 
 		if (key.return) {
 			const game = pageGames[selectedIdx];
-			if (game) onSelect(game);
+			if (game && coins >= game.entryFee) onSelect(game);
 		}
 	});
 
@@ -92,19 +93,22 @@ export function GameSelectScreen({onSelect, onBack, petName}: GameSelectScreenPr
 				</Text>
 				<Text> </Text>
 				<Text color="white">Choose a game for <Text bold color="cyan">{petName}</Text> to play!</Text>
+				<Text>Coins: <Text bold color="yellow">{coins}</Text></Text>
 				<Text dimColor>Page {page + 1}/{totalPages}</Text>
 			</Box>
 
 			<Box flexDirection="column" marginY={1} width={50}>
 				{pageGames.map((game, idx) => {
 					const isSelected = idx === selectedIdx;
+					const canAfford = coins >= game.entryFee;
 					return (
 						<Box key={game.id} paddingX={1}>
-							<Text color={isSelected ? game.color : 'gray'} bold={isSelected}>
+							<Text color={isSelected ? (canAfford ? game.color : 'red') : 'gray'} bold={isSelected}>
 								{isSelected ? '> ' : '  '}
-								<Text color={game.color}>{game.icon}</Text>
+								<Text color={canAfford ? game.color : 'red'}>{game.icon}</Text>
 								{' '}
 								{game.name}
+								<Text color={canAfford ? 'yellow' : 'red'}> [{game.entryFee}c]</Text>
 								{isSelected ? ' <' : ''}
 							</Text>
 						</Box>
@@ -115,7 +119,7 @@ export function GameSelectScreen({onSelect, onBack, petName}: GameSelectScreenPr
 			{selected && (
 				<Box
 					borderStyle="round"
-					borderColor={selected.color}
+					borderColor={coins >= selected.entryFee ? selected.color : 'red'}
 					paddingX={2}
 					paddingY={0}
 					width={50}
@@ -123,6 +127,11 @@ export function GameSelectScreen({onSelect, onBack, petName}: GameSelectScreenPr
 					<Box flexDirection="column">
 						<Text color={selected.color} bold>{selected.name}</Text>
 						<Text>{selected.description}</Text>
+						{coins >= selected.entryFee ? (
+							<Text color="yellow">Entry: {selected.entryFee}c | Win ({selected.winThreshold}+ pts): {selected.entryFee * selected.payoutMultiplier}c</Text>
+						) : (
+							<Text color="red" bold>Not enough coins! Need {selected.entryFee}c</Text>
+						)}
 					</Box>
 				</Box>
 			)}

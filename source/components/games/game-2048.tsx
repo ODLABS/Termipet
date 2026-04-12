@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface Game2048Props {
@@ -118,6 +118,10 @@ export function Game2048({onComplete, petName}: Game2048Props) {
 	const [gameOver, setGameOver] = useState(false);
 	const [won, setWon] = useState(false);
 	const [moves, setMoves] = useState(0);
+	const [timeLeft, setTimeLeft] = useState(60);
+
+	const scoreRef = useRef(score);
+	useEffect(() => { scoreRef.current = score; }, [score]);
 
 	const handleMove = useCallback((direction: 'left' | 'right' | 'up' | 'down') => {
 		if (gameOver) return;
@@ -141,11 +145,32 @@ export function Game2048({onComplete, petName}: Game2048Props) {
 		}
 	}, [grid, gameOver, won]);
 
+	// Timer countdown
+	useEffect(() => {
+		if (gameOver) return undefined;
+		const timer = setInterval(() => {
+			setTimeLeft(prev => {
+				if (prev <= 1) {
+					setGameOver(true);
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [gameOver]);
+
+	// End game callback
+	useEffect(() => {
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
+
 	useInput((input, key) => {
-		if (gameOver) {
-			if (input === ' ' || key.return) {
-				onComplete(score);
-			}
+		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
 			return;
 		}
 		if (key.upArrow) handleMove('up');
@@ -167,6 +192,7 @@ export function Game2048({onComplete, petName}: Game2048Props) {
 				<Text>Score: <Text bold color="yellow">{score}</Text></Text>
 				<Text> | Best: <Text bold color="cyan">{bestTile}</Text></Text>
 				<Text> | Moves: <Text bold>{moves}</Text></Text>
+				<Text> | Time: <Text bold color={timeLeft <= 10 ? 'red' : 'white'}>{timeLeft}s</Text></Text>
 			</Box>
 			<Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1}>
 				{grid.map((row, ri) => (
@@ -181,14 +207,11 @@ export function Game2048({onComplete, petName}: Game2048Props) {
 			</Box>
 			<Box marginTop={1}>
 				{gameOver ? (
-					<Box flexDirection="column" alignItems="center">
-						<Text bold color={won ? 'green' : 'red'}>
-							{won ? `${petName} reached 2048!` : 'No more moves!'} Score: {score}
-						</Text>
-						<Text dimColor>Press SPACE to continue</Text>
-					</Box>
+					<Text bold color={won ? 'green' : 'red'}>
+						GAME OVER! {won ? `${petName} reached 2048!` : 'No more moves!'} Score: {score}
+					</Text>
 				) : (
-					<Text dimColor>Arrow keys to slide tiles | Merge to reach 2048!</Text>
+					<Text dimColor>Arrow keys to slide tiles | Merge to reach 2048! | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

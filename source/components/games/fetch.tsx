@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface FetchProps {
@@ -28,6 +28,25 @@ export function FetchGame({onComplete, petName}: FetchProps) {
 	const [round, setRound] = useState(1);
 	const [roundScore, setRoundScore] = useState(0);
 	const [gameOver, setGameOver] = useState(false);
+	const [timeLeft, setTimeLeft] = useState(50);
+
+	const scoreRef = useRef(score);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+
+	// Timer countdown
+	useEffect(() => {
+		if (gameOver) return undefined;
+		const timer = setInterval(() => {
+			setTimeLeft(prev => {
+				if (prev <= 1) {
+					setGameOver(true);
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [gameOver]);
 
 	// Angle oscillation
 	useEffect(() => {
@@ -127,15 +146,17 @@ export function FetchGame({onComplete, petName}: FetchProps) {
 	}, [phase, round]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const timer = setTimeout(() => onComplete(score), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
-	useInput((input) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 		if (input === ' ') {
 			if (phase === 'aiming') {
 				setPhase('power');
@@ -204,6 +225,7 @@ export function FetchGame({onComplete, petName}: FetchProps) {
 				<Text> | </Text>
 				<Text>Round: <Text bold color="yellow">{round}/{ROUNDS}</Text></Text>
 				<Text> | Score: <Text bold color="yellow">{score}</Text></Text>
+				<Text> | Time: <Text bold color={timeLeft <= 10 ? 'red' : 'white'}>{timeLeft}s</Text></Text>
 			</Box>
 
 			{phase === 'aiming' && (

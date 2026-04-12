@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface BugCatcherProps {
@@ -76,6 +76,11 @@ export function BugCatcherGame({onComplete, petName}: BugCatcherProps) {
 	const [lastCatch, setLastCatch] = useState('');
 	const [netFrame, setNetFrame] = useState(0);
 
+	const scoreRef = useRef(score);
+	const maxComboRef = useRef(maxCombo);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+	useEffect(() => { maxComboRef.current = maxCombo; }, [maxCombo]);
+
 	// Timer
 	useEffect(() => {
 		if (gameOver) return undefined;
@@ -135,16 +140,17 @@ export function BugCatcherGame({onComplete, petName}: BugCatcherProps) {
 	}, [gameOver]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const finalScore = score + maxCombo * 10;
-			const timer = setTimeout(() => onComplete(finalScore), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, maxCombo, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current + maxComboRef.current * 10), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
 	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 
 		if (key.upArrow) setCursorY(y => Math.max(0, y - 1));
 		if (key.downArrow) setCursorY(y => Math.min(H - 1, y + 1));
@@ -258,7 +264,7 @@ export function BugCatcherGame({onComplete, petName}: BugCatcherProps) {
 				{gameOver ? (
 					<Text bold color="green">{petName} caught {caught} bugs! Score: {score + maxCombo * 10}</Text>
 				) : (
-					<Text dimColor>Arrows: move net | Space: catch! | Bugs on screen: {bugs.length}</Text>
+					<Text dimColor>Arrows: move net | Space: catch! | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

@@ -163,7 +163,9 @@ export function TetrisGame({onComplete, petName}: TetrisProps) {
 
 	useInput((input, key) => {
 		if (gameOver) return;
-		if (key.leftArrow && canPlace(board, piece, px - 1, py)) {
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+		} else if (key.leftArrow && canPlace(board, piece, px - 1, py)) {
 			setPx(p => p - 1);
 		} else if (key.rightArrow && canPlace(board, piece, px + 1, py)) {
 			setPx(p => p + 1);
@@ -226,7 +228,7 @@ export function TetrisGame({onComplete, petName}: TetrisProps) {
 				{gameOver ? (
 					<Text bold color="red">GAME OVER! {petName} scored {score}!</Text>
 				) : (
-					<Text dimColor>←→ Move  ↑ Rotate  ↓ Soft drop  Space Hard drop</Text>
+					<Text dimColor>←→ Move  ↑ Rotate  ↓ Soft drop  Space Hard drop  Q/Esc Quit</Text>
 				)}
 			</Box>
 		</Box>

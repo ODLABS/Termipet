@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface HideAndSeekProps {
@@ -8,7 +8,7 @@ interface HideAndSeekProps {
 
 const GRID_W = 8;
 const GRID_H = 6;
-const GAME_DURATION = 30_000;
+const GAME_DURATION = 45_000;
 const ROUNDS = 5;
 
 const HIDING_SPOTS = ['🌳', '📦', '🏠', '🪨', '🌿', '🗑', '🚗', '🎪'];
@@ -34,6 +34,9 @@ export function HideAndSeekGame({onComplete, petName}: HideAndSeekProps) {
 	const [guesses, setGuesses] = useState(0);
 	const [hint, setHint] = useState('');
 
+	const scoreRef = useRef(score);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+
 	// Randomize grid content per position
 	const [spotGrid] = useState(() => {
 		return Array.from({length: GRID_H}, () =>
@@ -56,12 +59,10 @@ export function HideAndSeekGame({onComplete, petName}: HideAndSeekProps) {
 	}, [gameOver]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const timer = setTimeout(() => onComplete(score), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
 	const getDistance = (x1: number, y1: number, x2: number, y2: number): string => {
 		const dist = Math.abs(x1 - x2) + Math.abs(y1 - y2);
@@ -79,15 +80,19 @@ export function HideAndSeekGame({onComplete, petName}: HideAndSeekProps) {
 		return 'blue';
 	};
 
-	useInput((_input, key) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 
 		if (key.upArrow) setCursorY(y => Math.max(0, y - 1));
 		if (key.downArrow) setCursorY(y => Math.min(GRID_H - 1, y + 1));
 		if (key.leftArrow) setCursorX(x => Math.max(0, x - 1));
 		if (key.rightArrow) setCursorX(x => Math.min(GRID_W - 1, x + 1));
 
-		if (_input === ' ' || key.return) {
+		if (input === ' ' || key.return) {
 			if (found) return;
 			setGuesses(g => g + 1);
 			const key2 = `${cursorX},${cursorY}`;
@@ -177,7 +182,7 @@ export function HideAndSeekGame({onComplete, petName}: HideAndSeekProps) {
 				{gameOver ? (
 					<Text bold color="green">{petName} was found {round > 1 ? round - 1 : round} times! Score: {score}</Text>
 				) : (
-					<Text dimColor>Arrows: move | Space: search | Find {petName} hiding!</Text>
+					<Text dimColor>Arrows: move | Space: search | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

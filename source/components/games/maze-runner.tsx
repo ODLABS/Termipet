@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface MazeRunnerProps {
@@ -8,7 +8,7 @@ interface MazeRunnerProps {
 
 const MAZE_W = 15;
 const MAZE_H = 9;
-const GAME_DURATION = 90_000;
+const GAME_DURATION = 60_000;
 
 type MazeCell = {
 	walls: {top: boolean; right: boolean; bottom: boolean; left: boolean};
@@ -63,6 +63,9 @@ export function MazeRunnerGame({onComplete, petName}: MazeRunnerProps) {
 	const [mazesCleared, setMazesCleared] = useState(0);
 	const [trail, setTrail] = useState<Set<string>>(new Set(['0,0']));
 
+	const scoreRef = useRef(score);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+
 	useEffect(() => {
 		if (gameOver) return undefined;
 		const timer = setInterval(() => {
@@ -78,15 +81,17 @@ export function MazeRunnerGame({onComplete, petName}: MazeRunnerProps) {
 	}, [gameOver]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const timer = setTimeout(() => onComplete(score), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
-	useInput((_input, key) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 		const cell = maze[playerY]![playerX]!;
 
 		let moved = false;
@@ -218,7 +223,7 @@ export function MazeRunnerGame({onComplete, petName}: MazeRunnerProps) {
 				{gameOver ? (
 					<Text bold color="green">{petName} cleared {mazesCleared} mazes! Score: {score}</Text>
 				) : (
-					<Text dimColor>Arrow keys to navigate | <Text color="cyan">S</Text>=Start <Text color="yellow">E</Text>=Exit</Text>
+					<Text dimColor>Arrow keys to navigate | <Text color="cyan">S</Text>=Start <Text color="yellow">E</Text>=Exit | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

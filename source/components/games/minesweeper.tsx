@@ -1,4 +1,4 @@
-import React, {useState, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface MinesweeperProps {
@@ -9,6 +9,7 @@ interface MinesweeperProps {
 const GRID_W = 10;
 const GRID_H = 8;
 const MINE_COUNT = 10;
+const GAME_DURATION = 60_000;
 
 type CellState = 'hidden' | 'revealed' | 'flagged';
 
@@ -75,6 +76,14 @@ export function MinesweeperGame({onComplete, petName}: MinesweeperProps) {
 	const [revealedCount, setRevealedCount] = useState(0);
 	const [flagCount, setFlagCount] = useState(0);
 	const [startTime] = useState(Date.now());
+	const [timeLeft, setTimeLeft] = useState(GAME_DURATION / 1000);
+
+	const wonRef = useRef(won);
+	const revealedCountRef = useRef(revealedCount);
+	const startTimeRef = useRef(startTime);
+	useEffect(() => { wonRef.current = won; }, [won]);
+	useEffect(() => { revealedCountRef.current = revealedCount; }, [revealedCount]);
+	useEffect(() => { startTimeRef.current = startTime; }, [startTime]);
 
 	const totalSafe = GRID_W * GRID_H - MINE_COUNT;
 
@@ -121,14 +130,37 @@ export function MinesweeperGame({onComplete, petName}: MinesweeperProps) {
 		}
 	}, [totalSafe]);
 
+	// Timer countdown
+	useEffect(() => {
+		if (gameOver) return undefined;
+		const timer = setInterval(() => {
+			setTimeLeft(prev => {
+				if (prev <= 1) {
+					setGameOver(true);
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [gameOver]);
+
+	// End game callback
+	useEffect(() => {
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => {
+			const elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+			const timeBonus = Math.max(0, 300 - elapsed * 2);
+			const finalScore = wonRef.current ? revealedCountRef.current * 10 + timeBonus + 200 : Math.floor(revealedCountRef.current * 5);
+			onComplete(finalScore);
+		}, 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
+
 	useInput((input, key) => {
-		if (gameOver) {
-			if (input === ' ' || key.return) {
-				const elapsed = Math.floor((Date.now() - startTime) / 1000);
-				const timeBonus = Math.max(0, 300 - elapsed * 2);
-				const score = won ? revealedCount * 10 + timeBonus + 200 : Math.floor(revealedCount * 5);
-				onComplete(score);
-			}
+		if (gameOver) return;
+		if (input === 'q' || key.escape) {
+			setGameOver(true);
 			return;
 		}
 
@@ -169,8 +201,6 @@ export function MinesweeperGame({onComplete, petName}: MinesweeperProps) {
 		}
 	});
 
-	const elapsed = Math.floor((Date.now() - startTime) / 1000);
-
 	return (
 		<Box flexDirection="column" alignItems="center">
 			<Box marginBottom={1}>
@@ -178,7 +208,7 @@ export function MinesweeperGame({onComplete, petName}: MinesweeperProps) {
 				<Text> | </Text>
 				<Text>Mines: <Text bold color="red">{MINE_COUNT - flagCount}</Text></Text>
 				<Text> | Cleared: <Text bold color="green">{revealedCount}/{totalSafe}</Text></Text>
-				<Text> | Time: <Text bold>{elapsed}s</Text></Text>
+				<Text> | Time: <Text bold color={timeLeft <= 10 ? 'red' : 'white'}>{timeLeft}s</Text></Text>
 			</Box>
 
 			{/* Column numbers */}
@@ -227,12 +257,12 @@ export function MinesweeperGame({onComplete, petName}: MinesweeperProps) {
 			<Box marginTop={1}>
 				{gameOver ? (
 					won ? (
-						<Text bold color="green">{petName} cleared all mines! Press SPACE to continue</Text>
+						<Text bold color="green">GAME OVER! {petName} cleared all mines!</Text>
 					) : (
-						<Text bold color="red">BOOM! {petName} hit a mine! Press SPACE to continue</Text>
+						<Text bold color="red">GAME OVER! {petName} hit a mine!</Text>
 					)
 				) : (
-					<Text dimColor>Arrows: move | Space: reveal | F: flag</Text>
+					<Text dimColor>Arrows: move | Space: reveal | F: flag | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

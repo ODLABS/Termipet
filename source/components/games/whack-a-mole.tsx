@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface WhackAMoleProps {
@@ -41,6 +41,11 @@ export function WhackAMoleGame({onComplete, petName}: WhackAMoleProps) {
 	const [maxCombo, setMaxCombo] = useState(0);
 	const [timeLeft, setTimeLeft] = useState(GAME_DURATION / 1000);
 	const [gameOver, setGameOver] = useState(false);
+
+	const scoreRef = useRef(score);
+	const maxComboRef = useRef(maxCombo);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+	useEffect(() => { maxComboRef.current = maxCombo; }, [maxCombo]);
 
 	// Timer
 	useEffect(() => {
@@ -86,13 +91,10 @@ export function WhackAMoleGame({onComplete, petName}: WhackAMoleProps) {
 	}, [gameOver, score]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const finalScore = score * 10 + maxCombo * 5;
-			const timer = setTimeout(() => onComplete(finalScore), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, maxCombo, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current * 10 + maxComboRef.current * 5), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
 	const whackMole = useCallback((idx: number) => {
 		if (gameOver) return;
@@ -126,8 +128,12 @@ export function WhackAMoleGame({onComplete, petName}: WhackAMoleProps) {
 		}
 	}, [moles, gameOver]);
 
-	useInput((input) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (key.escape) {
+			setGameOver(true);
+			return;
+		}
 		const keyMap: Record<string, number> = {
 			q: 0, w: 1, e: 2,
 			a: 3, s: 4, d: 5,

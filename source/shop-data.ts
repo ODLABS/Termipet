@@ -3,14 +3,6 @@ import type {ShopItem} from './types.js';
 export const shopItems: ShopItem[] = [
 	// Food
 	{
-		id: 'basic-food',
-		name: 'Basic Kibble',
-		description: 'Simple food. Restores some hunger.',
-		price: 0,
-		effect: {hunger: 20},
-		category: 'food',
-	},
-	{
 		id: 'premium-food',
 		name: 'Premium Feast',
 		description: 'Gourmet meal! Restores hunger and boosts happiness.',

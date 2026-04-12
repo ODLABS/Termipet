@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface SimonSaysProps {
@@ -18,9 +18,14 @@ export function SimonSaysGame({onComplete, petName}: SimonSaysProps) {
 	const [phase, setPhase] = useState<Phase>('showing');
 	const [showIdx, setShowIdx] = useState(-1);
 	const [round, setRound] = useState(0);
+	const [completedRounds, setCompletedRounds] = useState(0);
 	const [activeColor, setActiveColor] = useState<string | null>(null);
 	const [gameOver, setGameOver] = useState(false);
 	const [flashColor, setFlashColor] = useState<string | null>(null);
+	const [timeLeft, setTimeLeft] = useState(45);
+
+	const completedRoundsRef = useRef(completedRounds);
+	useEffect(() => { completedRoundsRef.current = completedRounds; }, [completedRounds]);
 
 	// Start new round
 	const startRound = useCallback((prevSeq: string[]) => {
@@ -41,6 +46,21 @@ export function SimonSaysGame({onComplete, petName}: SimonSaysProps) {
 		}, 1000);
 		return () => clearTimeout(timer);
 	}, []);
+
+	// Timer countdown
+	useEffect(() => {
+		if (gameOver) return undefined;
+		const timer = setInterval(() => {
+			setTimeLeft(prev => {
+				if (prev <= 1) {
+					setGameOver(true);
+					return 0;
+				}
+				return prev - 1;
+			});
+		}, 1000);
+		return () => clearInterval(timer);
+	}, [gameOver]);
 
 	// Show sequence animation
 	useEffect(() => {
@@ -70,26 +90,29 @@ export function SimonSaysGame({onComplete, petName}: SimonSaysProps) {
 	}, [phase, sequence]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const score = round * 25;
-			const timer = setTimeout(() => onComplete(score), 2000);
-			return () => clearTimeout(timer);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(completedRoundsRef.current * 25), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
+
+	useInput((input, key) => {
+		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
 		}
-		return undefined;
-	}, [gameOver, round, onComplete]);
+		if (phase !== 'input') return;
+		const colorKey = input.toUpperCase();
+		if (!COLORS.includes(colorKey as any)) return;
 
-	useInput((input) => {
-		if (phase !== 'input' || gameOver) return;
-		const key = input.toUpperCase();
-		if (!COLORS.includes(key as any)) return;
-
-		setFlashColor(key);
+		setFlashColor(colorKey);
 		setTimeout(() => setFlashColor(null), 200);
 
-		if (key === sequence[inputIdx]) {
+		if (colorKey === sequence[inputIdx]) {
 			const nextIdx = inputIdx + 1;
 			if (nextIdx >= sequence.length) {
 				// Round complete!
+				setCompletedRounds(round);
 				setPhase('success');
 				setTimeout(() => {
 					startRound(sequence);
@@ -132,6 +155,7 @@ export function SimonSaysGame({onComplete, petName}: SimonSaysProps) {
 				<Text> | </Text>
 				<Text>Round: <Text bold color="yellow">{round}</Text></Text>
 				<Text> | Sequence: <Text bold color="cyan">{sequence.length}</Text></Text>
+				<Text> | Time: <Text bold color={timeLeft <= 10 ? 'red' : 'white'}>{timeLeft}s</Text></Text>
 			</Box>
 
 			<Box marginBottom={1}>
@@ -166,9 +190,9 @@ export function SimonSaysGame({onComplete, petName}: SimonSaysProps) {
 
 			<Box marginTop={1}>
 				{gameOver ? (
-					<Text bold color="red">{petName} remembered {round - 1} rounds! Score: {(round - 1) * 25}</Text>
+					<Text bold color="red">{petName} remembered {completedRounds} rounds! Score: {completedRounds * 25}</Text>
 				) : (
-					<Text dimColor>Press R/G/B/Y to repeat the sequence</Text>
+					<Text dimColor>Press R/G/B/Y to repeat the sequence | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

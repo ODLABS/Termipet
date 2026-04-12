@@ -113,8 +113,12 @@ export function PongGame({onComplete, petName}: PongProps) {
 		return undefined;
 	}, [gameOver, playerScore, maxRally, onComplete]);
 
-	useInput((_input, key) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 		if (key.upArrow) setPlayerY(p => Math.max(0, p - 2));
 		if (key.downArrow) setPlayerY(p => Math.min(H - PADDLE_H, p + 2));
 	});
@@ -173,7 +177,7 @@ export function PongGame({onComplete, petName}: PongProps) {
 						{playerScore >= WIN_SCORE ? `${petName} WINS!` : 'CPU wins...'} Score: {playerScore * 100 + maxRally * 10}
 					</Text>
 				) : (
-					<Text dimColor>↑↓ Move paddle | Rally: {rally}</Text>
+					<Text dimColor>↑↓ Move paddle | Rally: {rally} | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

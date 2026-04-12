@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface FroggerProps {
@@ -61,6 +61,11 @@ export function FroggerGame({onComplete, petName}: FroggerProps) {
 	const [timeLeft, setTimeLeft] = useState(GAME_DURATION / 1000);
 	const [maxRow, setMaxRow] = useState(0);
 	const [crossings, setCrossings] = useState(0);
+
+	const scoreRef = useRef(score);
+	const crossingsRef = useRef(crossings);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+	useEffect(() => { crossingsRef.current = crossings; }, [crossings]);
 
 	// Timer
 	useEffect(() => {
@@ -155,16 +160,17 @@ export function FroggerGame({onComplete, petName}: FroggerProps) {
 	}, [lanes, frogX, frogY, gameOver]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const finalScore = score + crossings * 50;
-			const timer = setTimeout(() => onComplete(finalScore), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, crossings, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current + crossingsRef.current * 50), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
-	useInput((_input, key) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 		if (key.upArrow) {
 			const newY = Math.min(lanes.length - 1, frogY + 1);
 			setFrogY(newY);
@@ -255,7 +261,7 @@ export function FroggerGame({onComplete, petName}: FroggerProps) {
 				{gameOver ? (
 					<Text bold color="green">{petName} crossed {crossings} times! Score: {score + crossings * 50}</Text>
 				) : (
-					<Text dimColor>Arrow keys to hop | Cross the road and river!</Text>
+					<Text dimColor>Arrow keys to hop | Cross the road and river! | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

@@ -11,7 +11,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc && node -e \"const fs=require('fs');const f='dist/cli.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!')){fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);}\" && chmod +x dist/cli.js",
+    "build": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});\" && tsc && node -e \"const fs=require('fs');const f='dist/cli.js';const c=fs.readFileSync(f,'utf8');if(!c.startsWith('#!')){fs.writeFileSync(f,'#!/usr/bin/env node\\n'+c);}\" && chmod +x dist/cli.js",
     "dev": "tsc --watch",
     "start": "node dist/cli.js",
     "prepublishOnly": "npm run build"

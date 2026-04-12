@@ -94,8 +94,12 @@ export function SnakeGame({onComplete, petName}: SnakeProps) {
 		return undefined;
 	}, [gameOver, score, onComplete]);
 
-	useInput((_input, key) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 		if (key.upArrow && dir !== 'down') setDir('up');
 		else if (key.downArrow && dir !== 'up') setDir('down');
 		else if (key.leftArrow && dir !== 'right') setDir('left');
@@ -142,7 +146,7 @@ export function SnakeGame({onComplete, petName}: SnakeProps) {
 				{gameOver ? (
 					<Text bold color="red">GAME OVER! {petName} scored {score}!</Text>
 				) : (
-					<Text dimColor>Arrow keys to move | Eat <Text color="red">*</Text> to grow!</Text>
+					<Text dimColor>Arrow keys to move | Eat <Text color="red">*</Text> to grow! | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

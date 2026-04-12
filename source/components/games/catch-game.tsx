@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface CatchProps {
@@ -52,6 +52,9 @@ export function CatchGame({onComplete, petName}: CatchProps) {
 	const [gameOver, setGameOver] = useState(false);
 	const [caught, setCaught] = useState(0);
 	const [message, setMessage] = useState('');
+
+	const scoreRef = useRef(score);
+	useEffect(() => { scoreRef.current = score; }, [score]);
 
 	// Timer
 	useEffect(() => {
@@ -120,15 +123,17 @@ export function CatchGame({onComplete, petName}: CatchProps) {
 	}, [basketX, gameOver]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const timer = setTimeout(() => onComplete(score), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
-	useInput((_input, key) => {
+	useInput((input, key) => {
 		if (gameOver) return;
+		if (input.toLowerCase() === 'q' || key.escape) {
+			setGameOver(true);
+			return;
+		}
 		if (key.leftArrow) setBasketX(x => Math.max(0, x - 2));
 		if (key.rightArrow) setBasketX(x => Math.min(W - BASKET_W, x + 2));
 	});
@@ -184,7 +189,7 @@ export function CatchGame({onComplete, petName}: CatchProps) {
 				{gameOver ? (
 					<Text bold color="green">{petName} caught {caught} items! Score: {score}</Text>
 				) : (
-					<Text dimColor>←→ Move basket | Catch <Text color="green">food</Text>, avoid <Text color="red">rocks</Text>!</Text>
+					<Text dimColor>←→ Move basket | Catch <Text color="green">food</Text>, avoid <Text color="red">rocks</Text> | Q/Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>

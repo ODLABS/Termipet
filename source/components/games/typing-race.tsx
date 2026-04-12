@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback} from 'react';
+import React, {useState, useEffect, useCallback, useRef} from 'react';
 import {Box, Text, useInput} from 'ink';
 
 interface TypingRaceProps {
@@ -33,6 +33,11 @@ export function TypingRaceGame({onComplete, petName}: TypingRaceProps) {
 	const [recentWords, setRecentWords] = useState<{word: string; correct: boolean}[]>([]);
 	const [flash, setFlash] = useState<'correct' | 'wrong' | null>(null);
 
+	const scoreRef = useRef(score);
+	const maxWpmRef = useRef(maxWpm);
+	useEffect(() => { scoreRef.current = score; }, [score]);
+	useEffect(() => { maxWpmRef.current = maxWpm; }, [maxWpm]);
+
 	useEffect(() => {
 		if (gameOver) return undefined;
 		const timer = setInterval(() => {
@@ -53,16 +58,17 @@ export function TypingRaceGame({onComplete, petName}: TypingRaceProps) {
 	}, [gameOver, wordsCompleted]);
 
 	useEffect(() => {
-		if (gameOver) {
-			const finalScore = score + maxWpm * 2;
-			const timer = setTimeout(() => onComplete(finalScore), 1500);
-			return () => clearTimeout(timer);
-		}
-		return undefined;
-	}, [gameOver, score, maxWpm, onComplete]);
+		if (!gameOver) return undefined;
+		const t = setTimeout(() => onComplete(scoreRef.current + maxWpmRef.current * 2), 2000);
+		return () => clearTimeout(t);
+	}, [gameOver]);
 
 	useInput((input, key) => {
 		if (gameOver) return;
+		if (key.escape) {
+			setGameOver(true);
+			return;
+		}
 
 		if (key.backspace || key.delete) {
 			setTyped(t => t.slice(0, -1));
@@ -168,7 +174,7 @@ export function TypingRaceGame({onComplete, petName}: TypingRaceProps) {
 				{gameOver ? (
 					<Text bold color="green">{petName} typed {wordsCompleted} words! Score: {score + maxWpm * 2}</Text>
 				) : (
-					<Text dimColor>Words completed: {wordsCompleted} | Best WPM: {maxWpm}</Text>
+					<Text dimColor>Words completed: {wordsCompleted} | Best WPM: {maxWpm} | Esc: Quit</Text>
 				)}
 			</Box>
 		</Box>
